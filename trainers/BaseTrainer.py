@@ -21,6 +21,7 @@ from utils.logger import Logger
 import argparse
 from importlib import import_module
 from models.loss import Global_Loss
+import time
 
 class AverageMeter(object):
     """Computes and stores the average and current value"""
@@ -62,7 +63,7 @@ class ProgressMeter(object):
         return '[' + fmt + '/' + fmt.format(num_batches) + ']'
 
 class BaseTrainer(object):
-    def __init__(self, net, optimizer, lrsch, loss, train_loader, val_loader, logger, start_epoch,
+    def __init__(self, epoch, net, optimizer, lrsch, train_loader, logger,
                  save_interval=1):
         '''
         mode:   0: only single task--combine 
@@ -73,24 +74,29 @@ class BaseTrainer(object):
         self.net = net
         self.optimizer = optimizer
         self.lrsch = lrsch
-        self.loss = loss
         self.train_loader = train_loader
-        self.test_loader = val_loader
-        self.logger = logger
-        self.logger.global_step = start_epoch
+        #self.logger = logger
+        #self.logger.global_step = start_epoch
         self.save_interval = save_interval
-        self.loss = nn.CrossEntropyLoss()
         self.loss1 = Global_Loss()
             
-    def train(self):
+    def train(self,epoch):
+        epoch = epoch
+        batch_time = AverageMeter('Time', ':6.3f')
+        data_time = AverageMeter('Data', ':6.3f')
+        losses = AverageMeter('Loss', ':.4e')
+        top1 = AverageMeter('Acc@1', ':6.2f')
+        top5 = AverageMeter('Acc@5', ':6.2f')
+        progress = ProgressMeter(
+            len(self.train_loader),
+            [batch_time, data_time, losses, top1, top5],
+            prefix="Epoch: [{}]".format(epoch))
         self.net.train()
-        self.logger.update_step()
-        train_loss = 0.
-        prob = []
-        pred = []
-        target = []
+        end = time.time()
+        #self.logger.update_step()
         for img, _ in (tqdm(self.train_loader, ascii=True, ncols=60)): # we do not use img label in unsupervised pretrain
-            # reset gradients 
+            # reset gradients
+            data_time.update(time.time()-end) 
             self.optimizer.zero_grad()
 
             img = img.cuda()
@@ -99,38 +105,21 @@ class BaseTrainer(object):
             patient_f = torch.cat([f11,f21], dim=1)
 
             acc1, acc5 = self.accuracy(patient_f, target, topk=(1,5))
-            
-
-
-
-            #prob_label, predicted_label, loss = self.net.calculate_objective(img,label)
-            
-            train_loss += loss.item()
-            target.append(label.cpu().detach().numpy().ravel()) # bag_label or label??
-            pred.append(predicted_label.cpu().detach().numpy().ravel())
-            prob.append(prob_label.cpu().detach().numpy().ravel())
-
+            self.losses.update(loss.item(),img.size(0))
+            self.top1.update(acc1[0], img.size(0))
+            self.top5.update(acc5[0], img.size(0))
+        
             # backward pass
             loss.backward()
             # step
             self.optimizer.step()
             self.lrsch.step()
-
-             # log
-            '''
-            target.append(bag_label.cpu().detach().float().tolist()[0])
-            pred.append(predicted_label.cpu().detach().float().tolist()[0])
-            prob.append(prob_label.cpu().detach().float().tolist()[0])
-            '''
             
-        # calculate loss and error for epoch
-        '''
-        print('target is {}'.format(target))
-        print('pred is {}'.format(pred))
-        print('prob is {}'.format(prob))
-        '''
-        train_loss /= len(self.train_loader)
-        self.log_metric("Train", target, prob, pred)
+            batch_time.update(time.time()-end)
+            end = time.time()
+
+            progress.display(1)
+        #self.log_metric("Train", target, prob, pred)
 
         if not (self.logger.global_step % self.save_interval):
             self.logger.save(self.net, self.optimizer, self.lrsch, self.loss)
@@ -140,9 +129,9 @@ class BaseTrainer(object):
 
     def accuracy(output, target, topk=(1,)):
     """Computes the accuracy over the k top predictions for the specified values of k"""
-    with torch.no_grad():
-        maxk = max(topk)
-        batch_size = target.size(0)
+        with torch.no_grad():
+            maxk = max(topk)
+            batch_size = target.size(0)
 
         _, pred = output.topk(maxk, 1, True, True)
         pred = pred.t()
@@ -175,16 +164,6 @@ class BaseTrainer(object):
         self.logger.log_scalar(prefix+'/'+'Malignant_recall', cls_report['1']['recall'], print= True)
         self.logger.log_scalar(prefix+'/'+'Benign_recall', cls_report['0']['recall'], print= True)
         self.logger.log_scalar(prefix+'/'+'Malignant_F1', cls_report['1']['f1-score'], print= True)
-
-
-        
-        '''
-        self.logger.log_scalar(prefix+'/'+'Accuracy', acc, print=True)
-        self.logger.log_scalar(prefix+'/'+'Precision', cls_report['1.0']['precision'], print=True)
-        self.logger.log_scalar(prefix+'/'+'Recall', cls_report['1.0']['recall'], print=True)
-        self.logger.log_scalar(prefix+'/'+'F1', cls_report['1.0']['f1-score'], print=True)
-        self.logger.log_scalar(prefix+'/'+'Specificity', cls_report['0.0']['recall'], print=True)
-        '''
         
 
 if __name__ == '__main__':
