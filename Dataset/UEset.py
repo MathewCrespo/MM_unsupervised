@@ -68,7 +68,7 @@ class UEset(Dataset):
         img11 = self.original_transform(img11)
         img21 = self.original_transform(img21)
 
-        return [img11, img21, img12, img22], label
+        return torch.stack([img11, img21, img12, img22],dim=0), label
     
     
 
@@ -84,4 +84,4 @@ if __name__ == '__main__':
     root = '/remote-home/share/MM_Ultrasound'
     data = UEset(root, pre_transform = pre_transform, sub_list = [1,2,3,4,5],label=True)
     imgs, label = data[9]
-    print(imgs[1].shape)
+    
