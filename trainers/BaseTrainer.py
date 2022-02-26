@@ -101,10 +101,10 @@ class BaseTrainer(object):
 
             img = img.cuda()
             f = self.net(img)
-            loss, target, f11, f21 = self.loss1(f)
+            loss, target, f11, f21, logits = self.loss1(f)
             patient_f = torch.cat([f11,f21], dim=1)
 
-            acc1, acc5 = self.accuracy(f11, target, topk=(1, 5)) # notice here
+            acc1, acc5 = self.accuracy(logits, target, topk=(1, 5)) # notice here  
             losses.update(loss.item(),img.size(0))
             top1.update(acc1[0], img.size(0))
             top5.update(acc5[0], img.size(0))

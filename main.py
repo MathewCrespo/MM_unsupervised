@@ -51,7 +51,7 @@ class Base_config(object):
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor()])
     
-        self.optimizer = Adam(self.net.parameters(), lr=args.lr)
+        self.optimizer = torch.optim.SGD(self.net.parameters(), lr=args.lr)
         self.lrsch = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[10, 30, 50, 70], gamma=0.5)
         self.logger = Logger(log_root)
         self.trainbag = UEset(args.data_root, pre_transform = self.train_transform, sub_list=[x for x in [0,1,2,3,4] if x!=args.test_fold])
@@ -79,7 +79,7 @@ if __name__=='__main__':
     parser.add_argument('--data_root',type=str,default='/remote-home/share/MM_Ultrasound')
     parser.add_argument('--log_root',type=str)
     parser.add_argument('--test_fold',type=int,default=0, help='which fold of data is used for test')
-    parser.add_argument('--lr',type=float,default=1e-4)
+    parser.add_argument('--lr',type=float,default=0.03)
     parser.add_argument('--epoch',type=int,default=50)
     parser.add_argument('--resume',type=int,default=-1)
     parser.add_argument('--batchsize',type=int,default=256)
