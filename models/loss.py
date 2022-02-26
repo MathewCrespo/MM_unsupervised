@@ -6,8 +6,8 @@ class Global_Loss(nn.Module):
     def __init__(self, t=0.07,aug=True,domain=True):
         super(Global_Loss, self).__init__()
         self.t = t
-        self.aug = self.aug
-        self.domain = self.domain
+        self.aug = aug
+        self.domain = domain
         self.criterion = nn.CrossEntropyLoss()
 
     def forward(self, f):
@@ -16,21 +16,21 @@ class Global_Loss(nn.Module):
         f21 = f[:,1,:]
         f12 = f[:,2,:]
         f22 = f[:,3,:]
-        l = torch.tensor(0.)
+        l = torch.tensor(0.).cuda()
         if self.aug:
             l_pos_aug1 = torch.einsum('nc,nc->n',[f11,f12]).unsqueeze(-1)
             l_pos_aug2 = torch.einsum('nc,nc->n',[f21,f22]).unsqueeze(-1)
             l_neg_aug1 = torch.einsum('nc,ck->nk',[f11,f12.T])
             l_neg_aug2 = torch.einsum('nc,ck->nk',[f21,f22.T])
             logits_aug1 = torch.cat([l_pos_aug1,l_neg_aug1],dim=1)
-            logit_aug1 /= self.t
+            logits_aug1 /= self.t
             logits_aug2 = torch.cat([l_pos_aug2,l_neg_aug2],dim=1)
-            logit_aug2 /= self.t
-            labels = torch.zeros(logits_aug1.shape[0],dtype=torch.long)
-            aug_loss = criterion(logits_aug1,labels) + criterion(logits_aug2,labels)
+            logits_aug2 /= self.t
+            labels = torch.zeros(logits_aug1.shape[0],dtype=torch.long).cuda()
+            aug_loss = self.criterion(logits_aug1,labels) + self.criterion(logits_aug2,labels)
             l += aug_loss
         
-        if self.domian:
+        if self.domain:
             l_pos_d1 = torch.einsum('nc,nc->n',[f11,f21]).unsqueeze(-1)
             l_pos_d2 = torch.einsum('nc,nc->n',[f12,f22]).unsqueeze(-1)
             l_neg_d1 = torch.einsum('nc,ck->nk',[f11,f21.T])
@@ -39,12 +39,7 @@ class Global_Loss(nn.Module):
             logits_d1 /= self.t
             logits_d2 = torch.cat([l_pos_d2,l_neg_d2],dim=1)
             logits_d2 /= self.t
-            labels = torch.zeros(logits_d1.shape[0],dtype=torch.long)
-            d_loss = criterion(logits_d1,labels) + criterion(logits_d2,labels)
+            labels = torch.zeros(logits_d1.shape[0],dtype=torch.long).cuda()
+            d_loss = self.criterion(logits_d1,labels) + self.criterion(logits_d2,labels)
             l += d_loss
         return l, labels, f11, f21
-
-
-        
-
-        return f

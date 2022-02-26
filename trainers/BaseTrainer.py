@@ -63,7 +63,7 @@ class ProgressMeter(object):
         return '[' + fmt + '/' + fmt.format(num_batches) + ']'
 
 class BaseTrainer(object):
-    def __init__(self, epoch, net, optimizer, lrsch, train_loader, logger,
+    def __init__(self, net, optimizer, lrsch, train_loader, logger,
                  save_interval=1):
         '''
         mode:   0: only single task--combine 
@@ -75,7 +75,7 @@ class BaseTrainer(object):
         self.optimizer = optimizer
         self.lrsch = lrsch
         self.train_loader = train_loader
-        #self.logger = logger
+        self.logger = logger
         #self.logger.global_step = start_epoch
         self.save_interval = save_interval
         self.loss1 = Global_Loss()
@@ -100,14 +100,14 @@ class BaseTrainer(object):
             self.optimizer.zero_grad()
 
             img = img.cuda()
-            f = self.model(img)
+            f = self.net(img)
             loss, target, f11, f21 = self.loss1(f)
             patient_f = torch.cat([f11,f21], dim=1)
 
-            acc1, acc5 = self.accuracy(patient_f, target, topk=(1,5))
-            self.losses.update(loss.item(),img.size(0))
-            self.top1.update(acc1[0], img.size(0))
-            self.top5.update(acc5[0], img.size(0))
+            acc1, acc5 = self.accuracy(f11, target, topk=(1, 5)) # notice here
+            losses.update(loss.item(),img.size(0))
+            top1.update(acc1[0], img.size(0))
+            top5.update(acc5[0], img.size(0))
         
             # backward pass
             loss.backward()
@@ -122,13 +122,13 @@ class BaseTrainer(object):
         #self.log_metric("Train", target, prob, pred)
 
         if not (self.logger.global_step % self.save_interval):
-            self.logger.save(self.net, self.optimizer, self.lrsch, self.loss)
+            self.logger.save(self.net, self.optimizer, self.lrsch, self.loss1)
 
         #print('Epoch: {}, Loss: {:.4f}, Train error: {:.4f}'.format(self.epoch, train_loss.cpu().numpy()[0], train_error))
 
 
-    def accuracy(output, target, topk=(1,)):
-    """Computes the accuracy over the k top predictions for the specified values of k"""
+    def accuracy(self, output, target, topk=(1,)):
+    #Computes the accuracy over the k top predictions for the specified values of k
         with torch.no_grad():
             maxk = max(topk)
             batch_size = target.size(0)
@@ -139,7 +139,7 @@ class BaseTrainer(object):
 
         res = []
         for k in topk:
-            correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
+            correct_k = correct[:k].contiguous().view(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
 
