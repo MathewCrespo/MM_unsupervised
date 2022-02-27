@@ -18,12 +18,6 @@ class Res_Encoder(nn.Module):
             nn.ReLU(),
         )
 
-        self.attention = nn.Sequential(
-            nn.Linear(self.L, self.D),
-            nn.Tanh(),
-            nn.Linear(self.D, self.K)
-        )
-
     def forward(self, x, debug=False):
 
         batch = x.shape[0]
@@ -37,3 +31,15 @@ class Res_Encoder(nn.Module):
         f = f.view(batch,4,-1)
 
         return f
+
+class classifer(nn.Module):
+    def __init__(self):
+        super(classifer,self).__init__
+        self.cls = nn.Sequential(
+            nn.Linear(1000,128),
+            nn.ReLU(),
+            nn.Linear(128,2),
+            nn.Sigmoid()
+        )
+    def forward(self,f):
+        probs = self.cls(f)
