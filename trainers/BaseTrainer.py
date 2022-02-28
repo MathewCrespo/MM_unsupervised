@@ -76,7 +76,7 @@ class BaseTrainer(object):
         self.lrsch = lrsch
         self.train_loader = train_loader
         self.logger = logger
-        #self.logger.global_step = start_epoch
+        self.logger.global_step = 0
         self.save_interval = save_interval
         self.loss1 = Global_Loss()
             
@@ -93,7 +93,7 @@ class BaseTrainer(object):
             prefix="Epoch: [{}]".format(epoch))
         self.net.train()
         end = time.time()
-        #self.logger.update_step()
+        self.logger.update_step()
         for img, _ in (tqdm(self.train_loader, ascii=True, ncols=60)): # we do not use img label in unsupervised pretrain
             # reset gradients
             data_time.update(time.time()-end) 

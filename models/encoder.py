@@ -34,12 +34,13 @@ class Res_Encoder(nn.Module):
 
 class classifer(nn.Module):
     def __init__(self):
-        super(classifer,self).__init__
-        self.cls = nn.Sequential(
+        super(classifer,self).__init__()
+        self.cls_layer = nn.Sequential(
             nn.Linear(1000,128),
             nn.ReLU(),
             nn.Linear(128,2),
-            nn.Sigmoid()
+            #nn.Sigmoid()
         )
     def forward(self,f):
-        probs = self.cls(f)
+        probs = self.cls_layer(f)
+        return probs

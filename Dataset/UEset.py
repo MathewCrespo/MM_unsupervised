@@ -55,7 +55,7 @@ class UEset(Dataset):
 
         now_patient = self.patient_info[idx]
         label = now_patient['label']
-        label = torch.tensor(label)  ## may be LongTensor here
+        label = torch.tensor(label).long()  ## may be LongTensor here
         img_path = now_patient['img']
         img = Image.open(img_path)
         w, h = img.size
