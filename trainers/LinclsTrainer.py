@@ -107,7 +107,7 @@ class LinclsTrainer(object):
             img = img.cuda()
             label = label.cuda()
             # feature extractor
-            f = self.encoder(img)
+            batch, f_list, f = self.encoder(img)
             f11 = f[:,0,:]
             f21 = f[:,1,:]
             patient_f = torch.cat([f11,f21],dim=1)            
@@ -163,7 +163,7 @@ class LinclsTrainer(object):
             img = img.cuda()
             label = label.cuda()
             # feature extractor
-            f = self.encoder(img)
+            batch, f_list, f = self.encoder(img)
             f11 = f[:,0,:]
             f21 = f[:,1,:]
             patient_f = torch.cat([f11,f21],dim=1)

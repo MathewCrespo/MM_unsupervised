@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Global_Loss(nn.Module):
-    def __init__(self, t=0.01,aug=True,domain=True):
+    def __init__(self, t=0.01,aug=True,domain=False):
         super(Global_Loss, self).__init__()
         self.t = t
         self.aug = aug

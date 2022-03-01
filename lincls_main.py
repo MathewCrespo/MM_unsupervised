@@ -22,7 +22,7 @@ import torch.nn as nn
 import os
 from collections import OrderedDict
 from Dataset.UEset import UEset
-from models.encoder import Res_Encoder, classifer
+from models.encoder import Res_Encoder, classifer, Vgg_Encoder
 from trainers.BaseTrainer import BaseTrainer
 from trainers.LinclsTrainer import LinclsTrainer
 
@@ -36,9 +36,13 @@ class lincls_config(object):
         #print(self.net)
 
         # load pretrain model and freeze 
-        self.encoder = Res_Encoder()
+        self.encoder = Vgg_Encoder()
         pretrain_model = torch.load(model_path)['net']
-        self.encoder.load_state_dict(pretrain_model)
+        new_dict = OrderedDict()
+        for k,v in pretrain_model.items():
+            new_k = k[7:]
+            new_dict[new_k] = v
+        self.encoder.load_state_dict(new_dict)
         for name, v in self.encoder.named_parameters():
             v.requires_grad = False
         self.encoder = self.encoder.cuda()
@@ -60,14 +64,14 @@ class lincls_config(object):
                     transforms.Resize((224,224)),
                     transforms.ToTensor()
         ])
-
+        '''
         self.train_transform = transforms.Compose([
             transforms.RandomResizedCrop(224, scale=(0.2, 1.)),
             transforms.RandomGrayscale(p=0.2),
             transforms.ColorJitter(0.4, 0.4, 0.4, 0.4),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor()])
-    
+        '''
         self.optimizer = torch.optim.SGD(self.cls.parameters(), lr=args.lr)
         self.lrsch = torch.optim.lr_scheduler.MultiStepLR(self.optimizer, milestones=[10, 30, 50, 70], gamma=0.5)
         self.logger = Logger(log_root)
@@ -97,7 +101,7 @@ if __name__=='__main__':
     #configs = configs.__dict__
     parser = argparse.ArgumentParser(description='Linear Classification for Multi-modal Unsupervised')
     parser.add_argument('--data_root',type=str,default='/remote-home/share/MM_Ultrasound')
-    parser.add_argument('--pretrained',type=str,default='/remote-home/huhongyu/experiments/MMU/pretrain1/ckp/net.ckpt10.pth')
+    parser.add_argument('--pretrained',type=str,default='/remote-home/huhongyu/experiments/MMU/pretrain_vgg/ckp/net.ckpt200.pth')
     parser.add_argument('--log_root',type=str)
     parser.add_argument('--test_fold',type=int,default=0, help='which fold of data is used for test')
     parser.add_argument('--lr',type=float,default=0.03)
@@ -108,7 +112,7 @@ if __name__=='__main__':
 
     # parse parameters
     args = parser.parse_args()
-    log_root = os.path.join('/remote-home/huhongyu/experiments/MMU/',args.log_root)
+    log_root = os.path.join('/remote-home/huhongyu/experiments/MMU_lincls/',args.log_root)
     if not os.path.exists(log_root):
         os.mkdir(log_root)
 

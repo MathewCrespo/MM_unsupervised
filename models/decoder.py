@@ -4,10 +4,20 @@ Created on Tue Oct  6 11:11:41 2020
 @author: Administrator
 """
 import numpy as np
-from .normalize import l2_normal,l1_normal
 import torch.nn as nn
 import torch
 import torch.nn.functional as F
+
+def l2_normal(x,dim=1):
+    norm = x.pow(2).sum(dim, keepdim=True).pow(1./2)+1e-10
+    out = x.div(norm)
+    return out
+            
+def l1_normal(x,dim=1):
+    x=x+10e-10
+    norm = x.sum(dim, keepdim=True)
+    out = x.div(norm)
+    return out  
 
 class decoder(nn.Module):
     def __init__(self,channel_list=[128,128,64,32,16,32,8]):
