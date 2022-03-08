@@ -20,7 +20,7 @@ import utils.utility as utility
 from utils.logger import Logger
 import argparse
 from importlib import import_module
-from models.loss import Global_Loss
+from models.loss import Global_Loss, Dense_Loss
 import time
 
 class AverageMeter(object):
@@ -62,15 +62,9 @@ class ProgressMeter(object):
         fmt = '{:' + str(num_digits) + 'd}'
         return '[' + fmt + '/' + fmt.format(num_batches) + ']'
 
-class BaseTrainer(object):
+class MMTrainer(object):
     def __init__(self, net, optimizer, lrsch, train_loader, logger,
                  save_interval=1):
-        '''
-        mode:   0: only single task--combine 
-                1: multi task added, three losses are simply added together.
-                2: Ldiff between two extracted features
-        
-        '''
         self.net = net
         self.optimizer = optimizer
         self.lrsch = lrsch
@@ -78,8 +72,10 @@ class BaseTrainer(object):
         self.logger = logger
         self.logger.global_step = 0
         self.save_interval = save_interval
-        self.loss1 = Global_Loss()
-        #self.loss1 = nn.DataParallel(self.loss1,device_ids=[0,1])
+        self.loss1 = Global_Loss(aug=True,domain=True) # for img-level global loss
+        self.loss2 = Dense_Loss(patch_size=(4,4), h=[4])# for fine-grained local structure loss
+
+
             
     def train(self,epoch):
         epoch = epoch
@@ -95,22 +91,38 @@ class BaseTrainer(object):
         self.net.train()
         end = time.time()
         self.logger.update_step()
+        p_all = 0.
+        d_all = 0.
         for img, _ in (tqdm(self.train_loader, ascii=True, ncols=60)): # we do not use img label in unsupervised pretrain
             # reset gradients
             data_time.update(time.time()-end) 
             self.optimizer.zero_grad()
 
             img = img.cuda()
-            batch, f_list, f = self.net(img)
-            loss, target, f11, f21, logits = self.loss1(f)
+            _, f_list, f = self.net(img)  # output from the encoder
+            
+            patient_loss, target, f11, f21, logits = self.loss1(f) # img-level global loss
+            dense_loss = self.loss2(f_list)
             patient_f = torch.cat([f11,f21], dim=1)
-
+            loss = patient_loss + dense_loss
             acc1, acc5 = self.accuracy(logits, target, topk=(1, 5)) # notice here  
+            # loss sum
+            p_all += patient_loss.item()
+            d_all += dense_loss.item()
+
+            del target
+            del logits
+            
+
             losses.update(loss.item(),img.size(0))
             top1.update(acc1[0], img.size(0))
             top5.update(acc5[0], img.size(0))
         
             # backward pass
+            del f_list
+            del f11
+            del f21
+            del img
             loss.backward()
             # step
             self.optimizer.step()
@@ -122,11 +134,17 @@ class BaseTrainer(object):
             progress.display(1)
         #self.log_metric("Train", target, prob, pred)
 
+        self.log_loss("Train", p_all/len(self.train_loader), d_all/len(self.train_loader))
+
         if not (self.logger.global_step % self.save_interval):
             self.logger.save(self.net, self.optimizer, self.lrsch, self.loss1)
 
         #print('Epoch: {}, Loss: {:.4f}, Train error: {:.4f}'.format(self.epoch, train_loss.cpu().numpy()[0], train_error))
+    
+    def log_loss(self, prefix, patient_loss_all, dense_loss_all):
 
+        self.logger.log_scalar(prefix+'/'+'Patient', patient_loss_all, print=True)
+        self.logger.log_scalar(prefix+'/'+'Dense', dense_loss_all, print= True)
 
     def accuracy(self, output, target, topk=(1,)):
     #Computes the accuracy over the k top predictions for the specified values of k

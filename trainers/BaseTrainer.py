@@ -78,7 +78,7 @@ class BaseTrainer(object):
         self.logger = logger
         self.logger.global_step = 0
         self.save_interval = save_interval
-        self.loss1 = Global_Loss()
+        self.loss1 = Global_Loss(aug=True, domain=True)
         #self.loss1 = nn.DataParallel(self.loss1,device_ids=[0,1])
             
     def train(self,epoch):
@@ -95,6 +95,9 @@ class BaseTrainer(object):
         self.net.train()
         end = time.time()
         self.logger.update_step()
+        
+        loss_all = 0.
+        
         for img, _ in (tqdm(self.train_loader, ascii=True, ncols=60)): # we do not use img label in unsupervised pretrain
             # reset gradients
             data_time.update(time.time()-end) 
@@ -102,7 +105,10 @@ class BaseTrainer(object):
 
             img = img.cuda()
             batch, f_list, f = self.net(img)
-            loss, target, f11, f21, logits = self.loss1(f)
+            #loss, aug_loss, d_loss, target, f11, f21, logits = self.loss1(f)
+            loss,target, f11, f21, logits = self.loss1(f)
+            loss_all += loss.cpu().item()
+            #d_all += d_loss.cpu().item()
             patient_f = torch.cat([f11,f21], dim=1)
 
             acc1, acc5 = self.accuracy(logits, target, topk=(1, 5)) # notice here  
@@ -120,7 +126,7 @@ class BaseTrainer(object):
             end = time.time()
 
             progress.display(1)
-        #self.log_metric("Train", target, prob, pred)
+        self.log_loss("Train", 0., loss_all/len(self.train_loader))
 
         if not (self.logger.global_step % self.save_interval):
             self.logger.save(self.net, self.optimizer, self.lrsch, self.loss1)
@@ -144,6 +150,10 @@ class BaseTrainer(object):
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
 
+    def log_loss(self, prefix, aug_all, d_all):
+
+        self.logger.log_scalar(prefix+'/'+'Aug', aug_all, print=True)
+        self.logger.log_scalar(prefix+'/'+'Domain', d_all, print= True)
         
 
         

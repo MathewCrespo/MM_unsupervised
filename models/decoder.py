@@ -76,25 +76,12 @@ class decoder(nn.Module):
         features=self.upsample(features)
         features=torch.cat([features,x[-5]],dim=1)
         del x
-        if not if_clustering:
-            features=self.embedding_branch(features)
-            features=l2_normal(features)
-            return features
-        
-        attention_map=self.clustering_branch(features)
-        attention_map=l1_normal(attention_map, dim=1)
         features=self.embedding_branch(features)
         
         features=l2_normal(features)
-        # return attention_map,features
-        if if_test:
-            return attention_map,features
         patch_features=nn.functional.adaptive_avg_pool2d(features,output_size=region_output_size)
-        
-        region_features=features[:,np.newaxis,:,:,:]*attention_map[:,:,np.newaxis,:,:]
-        region_features=torch.mean(region_features,(3,4))
-        region_features=l2_normal(region_features,2)
-        return l2_normal(patch_features),region_features,attention_map
+
+        return l2_normal(patch_features)
     
 
 # def loss_entropy(attention_map):

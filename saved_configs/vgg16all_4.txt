@@ -1,0 +1,9 @@
+data_root:/remote-home/share/MM_Ultrasound
+pretrained:/remote-home/huhongyu/experiments/MMU/pretrain_vgg_all_debug1/ckp/net.ckpt200.pth
+log_root:vgg16all_4
+test_fold:4
+lr:0.03
+epoch:50
+resume:-1
+batchsize:128
+net:H_Attention_Graph

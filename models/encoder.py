@@ -45,7 +45,7 @@ class Vgg_Encoder(nn.Module):
 
         self.feature_extractor_part2 = nn.Sequential(
             nn.Linear(128 * 14 * 14, self.L),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
         )
 
     def forward(self, x, debug=False):
@@ -63,12 +63,16 @@ class Vgg_Encoder(nn.Module):
 class classifer(nn.Module):
     def __init__(self):
         super(classifer,self).__init__()
+        '''
         self.cls_layer = nn.Sequential(
             nn.Linear(1000,128),
             nn.ReLU(),
             nn.Linear(128,2),
             #nn.Sigmoid()
         )
+        '''
+        self.fc = nn.Linear(1000,2)
     def forward(self,f):
-        probs = self.cls_layer(f)
+        #probs = self.cls_layer(f)
+        probs = self.fc(f)
         return probs

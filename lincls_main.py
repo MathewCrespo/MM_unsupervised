@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader, Dataset
 import torch
 import torch.nn as nn
 import os
+os.environ['CUDA_DEVICE_ORDER'] = 'PCI_BUS_ID'
 from collections import OrderedDict
 from Dataset.UEset import UEset
 from models.encoder import Res_Encoder, classifer, Vgg_Encoder
@@ -49,7 +50,10 @@ class lincls_config(object):
         self.encoder.eval()
 
         # add cls layer
-        self.cls = classifer().cuda()
+        self.cls = classifer()
+        self.cls.fc.weight.data.normal_(mean=0.0,std=0.01)
+        self.cls.fc.bias.data.zero_()
+        self.cls = self.cls.cuda()
 
         self.train_transform = transforms.Compose([
                     transforms.Resize((224,224)),
@@ -101,7 +105,7 @@ if __name__=='__main__':
     #configs = configs.__dict__
     parser = argparse.ArgumentParser(description='Linear Classification for Multi-modal Unsupervised')
     parser.add_argument('--data_root',type=str,default='/remote-home/share/MM_Ultrasound')
-    parser.add_argument('--pretrained',type=str,default='/remote-home/huhongyu/experiments/MMU/pretrain_vgg/ckp/net.ckpt200.pth')
+    parser.add_argument('--pretrained',type=str,default='/remote-home/huhongyu/experiments/MMU/dense1_fm4_44/ckp/net.ckpt200.pth')
     parser.add_argument('--log_root',type=str)
     parser.add_argument('--test_fold',type=int,default=0, help='which fold of data is used for test')
     parser.add_argument('--lr',type=float,default=0.03)
@@ -116,8 +120,10 @@ if __name__=='__main__':
     if not os.path.exists(log_root):
         os.mkdir(log_root)
 
+    model_path = '/remote-home/huhongyu/experiments/MMU/{}/ckp/net.ckpt200.pth'.format(args.pretrained)
+
     
-    config_object = lincls_config(log_root, args.pretrained, args)
+    config_object = lincls_config(log_root, model_path, args)
     
 
     # train and eval

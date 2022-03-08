@@ -51,9 +51,9 @@ def parse_best(name,mode='overall'):
     fp.close()
 
 if __name__ == '__main__':
-    '''
+    
     for i in range(5):
-        parse_best('vgg16_{}'.format(i+1),mode='overall')
-    '''
-    parse_best('vgg16_{}'.format(0),mode='overall')
+        parse_best('fm34_44_{}'.format(i+1),mode='overall')
+    
+    #parse_best('vgg16_{}'.format(0),mode='overall')
     #parse_best('bash_mi_auc',mode='auc')
