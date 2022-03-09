@@ -1,0 +1,10 @@
+data_root:/remote-home/share/MM_Ultrasound
+pretrained:base1
+log_root:base8_1
+test_fold:1
+lr:0.03
+epoch:50
+resume:-1
+batchsize:64
+net:H_Attention_Graph
+imgnet:False

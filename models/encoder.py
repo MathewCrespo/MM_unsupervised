@@ -34,14 +34,15 @@ class Res_Encoder(nn.Module):
         return f
 
 class Vgg_Encoder(nn.Module):
-    def __init__(self, input_dim=3, L=500, D=128, K=1):
+    def __init__(self, pre=False,input_dim=3, L=500, D=128, K=1):
         super(Vgg_Encoder, self).__init__()
         self.input_dim = input_dim
         self.L = L
         self.D = D
         self.K = K
+        self.pre = pre
 
-        self.feature_extractor_part1 = vgg16_bn_tiny()
+        self.feature_extractor_part1 = vgg16_bn_tiny(pretrained=self.pre)
 
         self.feature_extractor_part2 = nn.Sequential(
             nn.Linear(128 * 14 * 14, self.L),

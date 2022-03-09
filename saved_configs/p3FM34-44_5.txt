@@ -1,0 +1,12 @@
+data_root:/remote-home/share/MM_Ultrasound
+gpu:4,5,6,7
+log_root:p3FM34-44_5
+test_fold:5
+lr:0.03
+epoch:200
+resume:-1
+batchsize:128
+net:H_Attention_Graph
+base:MM
+r:3
+fl:34

@@ -9,7 +9,6 @@ from tqdm import tqdm
 import random
 import pandas as pd
 from random import randint,sample
-import av
 import numpy as np
 # import cv2
 # import selectivesearch
@@ -24,7 +23,6 @@ class UEset(Dataset):
         self.pre_transform = pre_transform
         self.sub_list = sub_list
         self.patient_info = []
-        
         for fold in self.sub_list:
             self.scan(fold)
             

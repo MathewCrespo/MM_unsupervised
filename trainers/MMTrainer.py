@@ -64,7 +64,7 @@ class ProgressMeter(object):
 
 class MMTrainer(object):
     def __init__(self, net, optimizer, lrsch, train_loader, logger,
-                 save_interval=1):
+                 save_interval=1,r=1,fl=[4]):
         self.net = net
         self.optimizer = optimizer
         self.lrsch = lrsch
@@ -73,8 +73,8 @@ class MMTrainer(object):
         self.logger.global_step = 0
         self.save_interval = save_interval
         self.loss1 = Global_Loss(aug=True,domain=True) # for img-level global loss
-        self.loss2 = Dense_Loss(patch_size=(4,4), h=[4])# for fine-grained local structure loss
-
+        self.loss2 = Dense_Loss(patch_size=(4,4), h=[int(i) for i in fl])# for fine-grained local structure loss
+        self.r = r
 
             
     def train(self,epoch):
@@ -104,7 +104,7 @@ class MMTrainer(object):
             patient_loss, target, f11, f21, logits = self.loss1(f) # img-level global loss
             dense_loss = self.loss2(f_list)
             patient_f = torch.cat([f11,f21], dim=1)
-            loss = patient_loss + dense_loss
+            loss = self.r*patient_loss + dense_loss
             acc1, acc5 = self.accuracy(logits, target, topk=(1, 5)) # notice here  
             # loss sum
             p_all += patient_loss.item()
